@@ -128,7 +128,7 @@ pip install -r requirements.txt
 
 ### 2. Train models
 
-python train.py
+python store_sales.py
 
 Outputs:
 
