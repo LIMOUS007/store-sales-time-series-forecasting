@@ -1,147 +1,71 @@
-# Store Sales Forecasting – Time Series Regression Project
+# Store Sales Time-Series Forecasting
+
+Predicts daily sales for each store and product family using a full time-series ML pipeline.
 
 **Dataset:** Kaggle – Store Sales Time Series Forecasting
-**Goal:** Predict daily sales for each store and product family
+**Goal:** Predict future daily sales per store and product family
+**Type:** Time-series regression — evaluated with RMSLE on Kaggle (local validation used RMSE)
 
 ---
 
-## Problem Overview
+## Approach
 
-This dataset contains historical sales data across multiple stores and product categories.
-The task is to predict **future daily sales**, making this a **time-series regression problem**.
-
-Evaluation metric: **RMSLE (Root Mean Squared Log Error)** on Kaggle
-(Local validation used RMSE)
-
----
-
-## Approach Summary
-
-A full **time-series ML pipeline** was built instead of using raw models.
-
----
-
-### 1️ Data Integration & Preprocessing
-
+### 1. Data Integration & Preprocessing
 Multiple datasets were merged to enrich signal:
 
-* `train.csv` → main sales data
-* `stores.csv` → store metadata
-* `holidays_events.csv` → holiday signal
-* `oil.csv` → external economic factor
-* `transactions.csv` → customer activity
+- `train.csv` → main sales data
+- `stores.csv` → store metadata
+- `holidays_events.csv` → holiday signal
+- `oil.csv` → external economic factor
+- `transactions.csv` → customer activity
 
-Key steps:
+Key steps: converted `date` to datetime, sorted by `store_nbr`/`family`/`date`, created a holiday indicator (`is_holiday`), forward-filled oil prices, and filled missing transactions with 0.
 
-* Converted `date` to datetime
-* Sorted data by `store_nbr`, `family`, `date`
-* Created holiday indicator (`is_holiday`)
-* Forward-filled oil prices
-* Filled missing transactions with 0
+### 2. Feature Engineering
+- **Time:** `day`, `month`, `dayofweek`, `weekofyear`, `isweekend`
+- **Lag:** `sales_lag_1/7/14/30`
+- **Rolling:** `rolling_mean_7/30`, `rolling_std_7`
+- **Promotion:** `promo_lag_1`, `promo_sum_7`
+- **Oil:** `oil_lag_7`, `oil_change`
+- **Interaction:** `holiday_promo`, `promo_x_sales`, `weekend_x_promo`
+- **Behavioral:** `sales_ratio`, `sales_momentum`
+- **Encoding:** one-hot encoding of `family`
 
----
-
-### 2️ Feature Engineering (Core Strength)
-
-Feature engineering was the main driver of performance.
-
-#### Time Features
-
-* `day`, `month`, `dayofweek`, `weekofyear`
-* `isweekend`
-
-#### Lag Features (Historical Memory)
-
-* `sales_lag_1`, `sales_lag_7`, `sales_lag_14`, `sales_lag_30`
-
-#### Rolling Statistics (Trend)
-
-* `rolling_mean_7`, `rolling_mean_30`
-* `rolling_std_7`
-
-#### Promotion Features
-
-* `promo_lag_1`
-* `promo_sum_7`
-
-#### Oil Features
-
-* `oil_lag_7`
-* `oil_change`
-
-#### Interaction Features
-
-* `holiday_promo`
-* `promo_x_sales`
-* `weekend_x_promo`
-
-#### Behavioral Features
-
-* `sales_ratio`
-* `sales_momentum`
-
-#### Encoding
-
-* One-hot encoding of `family`
+### 3. Models used
+- Random Forest Regressor
+- Gradient Boosting Regressor
 
 ---
 
-### 3️ Models Used
+## Results
 
-Two regression models were trained:
+| Model | RMSE (Validation) |
+|-------|-------------------|
+| Random Forest | ~239.6 |
+| Gradient Boosting | ~209.6 |
+| Ensemble (RF + GB) | ~211.8 |
 
-* Random Forest Regressor
-* Gradient Boosting Regressor
+Gradient Boosting performed best on local validation.
 
----
+### Kaggle submissions
 
-### 4️ Results
+| Submission File | Description | Score |
+|-----------------|-------------|-------|
+| `submission_gbr.csv` | Gradient Boosting only | 3.55390 |
+| `submission_ensemble.csv` | Ensemble (GB + RF) | 3.54247 |
 
-| Model              | RMSE (Validation) |
-| ------------------ | ----------------- |
-| Random Forest      | ~239.6            |
-| Gradient Boosting  | ~209.6            |
-| Ensemble (RF + GB) | ~211.8            |
-
-Gradient Boosting performed best.
-
----
-
-## Kaggle Submissions
-
-| Submission File           | Description            | Score       |
-| ------------------------- | ---------------------- | ----------- |
-| `submission_gbr.csv`      | Gradient Boosting only | **3.55390** |
-| `submission_ensemble.csv` | Ensemble (GB + RF)     | **3.54247** |
-
-Ensemble slightly improved leaderboard score despite worse local RMSE.
+The ensemble slightly improved the leaderboard score despite a worse local RMSE.
 
 ---
 
-## How to Run
+## How to run
 
-### 1. Install dependencies
-
+```bash
 pip install -r requirements.txt
 
----
-
-### 2. Train models
-
+# 1. Train models -> gbr_model.pkl, rf_model.pkl
 python store_sales.py
 
-Outputs:
-
-* `models/gbr_model.pkl`
-* `models/rf_model.pkl`
-
----
-
-### 3. Generate submissions
-
+# 2. Generate submissions -> submission_gbr.csv, submission_ensemble.csv
 python submission.py
-
-Outputs:
-
-* `submission_gbr.csv`
-* `submission_ensemble.csv`
+```
